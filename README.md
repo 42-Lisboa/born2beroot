@@ -39,11 +39,16 @@ The repository only contains this README and a [signature.txt](./signature.txt) 
 
 Debian is very stable, has a huge package repository, a simple `apt` workflow and lots of documentation, which makes it a good choice for a first server. The downside is that its packages tend to be older and it has no commercial backing like Red Hat. Rocky is a RHEL-compatible distribution aimed at enterprise environments, with long support cycles and SELinux enabled by default, but it is harder to configure and has a steeper learning curve for a beginner.
 
+### 🔹 apt vs aptitude
+
+Both are front-ends for the Debian package system (`dpkg`) and both install, upgrade and remove packages. `apt` is a simple command-line tool that comes installed by default, and it is what I used for everything in this project. `aptitude` is a higher-level front-end that has an interactive text interface (ncurses) as well as a command-line mode, and its dependency resolver is smarter: when there is a conflict, it suggests alternative solutions (like keeping, removing or downgrading packages) instead of just failing. It is not installed by default on Debian.
+
 ### 🔹 Comparisons
 
 | Feature | My choice | Alternative | Notes |
 | :---- | :---- | :---- | :---- |
 | Operating system | Debian | Rocky Linux | Debian is simple, stable and uses `apt`. Rocky is a Red Hat derivative and uses `dnf`. |
+| Package manager | apt | aptitude | `apt` is a simple CLI tool, installed by default. `aptitude` has an interactive interface and a smarter dependency resolver that suggests solutions for conflicts, but needs to be installed. |
 | Security module | AppArmor | SELinux | AppArmor is path-based MAC (simpler). SELinux is label-based MAC (more powerful, more complex). |
 | Firewall | UFW | firewalld | UFW is straightforward and beginner-friendly. `firewalld` works with zones and has more advanced rules. |
 | Virtualization | VirtualBox | UTM | VirtualBox is a Type 2 hypervisor, widely used on x86. UTM is the option for Apple Silicon Macs. |
@@ -269,16 +274,24 @@ To stop the script without touching it (needed in the evaluation), just comment 
 
 ### 🔹 Useful checks
 
-Checks the OS and its version:
+Commands in the order I follow during the evaluation.
+
+Checks that UFW is installed:
 
 ```bash
-head -n 2 /etc/os-release
+sudo apt list ufw
 ```
 
-Checks that AppArmor is loaded and which profiles are active:
+Checks that UFW is active and which ports are allowed:
 
 ```bash
-sudo aa-status
+sudo ufw status
+```
+
+Check if SSH service is installed and working properly on the allowed ports:
+
+```bash
+sudo service ssh status
 ```
 
 Lists the ports listening for connections (should show only SSH on 4242):
@@ -287,10 +300,70 @@ Lists the ports listening for connections (should show only SSH on 4242):
 ss -tunlp
 ```
 
-Checks that UFW is active and which ports are allowed:
+Checks the OS and its version:
 
 ```bash
-sudo ufw status
+head -n 2 /etc/os-release
+```
+
+Checks that the AppArmor service is active and enabled at boot (`active (exited)` is the expected status, since it only loads the profiles and exits):
+
+```bash
+sudo service apparmor status
+```
+
+Checks that the AppArmor module is loaded in the kernel and which profiles are active:
+
+```bash
+sudo aa-status
+```
+
+Open and explain password policies:
+
+```bash
+sudo nano /etc/pam.d/common-password
+```
+
+```bash
+sudo nano /etc/login.defs
+```
+
+To change the hostname (the `/etc/hosts` file has to be updated too):
+
+```bash
+sudo hostnamectl set-hostname newhostname
+```
+
+```bash
+sudo nano /etc/hosts
+```
+
+To check the sudo policies:
+
+```bash
+sudo nano /etc/sudoers.d/sudo_config
+```
+
+Add or delete port authorization to the UFW service:
+
+```bash
+sudo ufw allow 8080
+```
+
+```bash
+sudo ufw delete allow 8080
+```
+
+Connect from the host OS to the guest OS on the VM using port 4241:4242:
+
+```bash
+ssh <user>@localhost -p 4241
+```
+
+To edit the crontab configuration file:
+
+```bash
+sudo crontab -u root -e
 ```
 
 ### 🔹 Signature
